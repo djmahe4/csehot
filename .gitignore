@@ -1,0 +1,33 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Runtime-generated log files (keep directory structure via .gitkeep)
+logs/module1/*.txt
+logs/module1/*.json
+logs/module2/*.txt
+logs/module2/*.json
+logs/module3/*.txt
+logs/module3/*.json
+logs/module4/*.txt
+logs/module4/*.json
+logs/module5/*.txt
+logs/module5/*.json
+
+# Runtime-generated reports (keep template)
+reports/*.md
+!reports/template.md
+
+# sqlmap output directory
+logs/module3/sqlmap_output/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor artifacts
+*.swp
+*.swo
+.vscode/
+.idea/

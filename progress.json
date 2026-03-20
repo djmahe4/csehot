@@ -1,0 +1,8 @@
+{
+  "module1": {"completed": false, "score": 0, "timestamp": null},
+  "module2": {"completed": false, "score": 0, "timestamp": null},
+  "module3": {"completed": false, "score": 0, "timestamp": null},
+  "module4": {"completed": false, "score": 0, "timestamp": null},
+  "module5": {"completed": false, "score": 0, "timestamp": null},
+  "ctf":     {"completed": false, "score": 0, "timestamp": null}
+}

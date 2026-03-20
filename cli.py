@@ -165,50 +165,63 @@ def option_setup():
     pause()
 
 def option_module1(progress):
-    clear()
-    ethical_warning()
-    print(bold("=== Module 1: Security Fundamentals ===\n"))
-    print("Topics: CIA Triad, Threat Actors, OSI/TCP-IP, Legal Frameworks\n")
+    while True:
+        clear()
+        ethical_warning()
+        print(bold("=== Module 1: Security Fundamentals ===\n"))
+        print("Topics: CIA Triad, Threat Actors, OSI/TCP-IP, Legal Frameworks\n")
 
-    sub = input("""
+        sub = input("""
   a) Read module notes
-  b) Open-port check (bash /dev/tcp demo)
+  b) Open-port check (native socket)
   c) Mark module as complete
   q) Back
 
 Choice: """).strip().lower()
 
-    if sub == "a":
-        show_file(os.path.join(MODULES_DIR, "module1_fundamentals.md"))
-        pause()
+        if sub == "q" or sub == "":
+            break
 
-    elif sub == "b":
-        print(bold("\n--- Open Port Check via /dev/tcp ---"))
-        print("This checks whether a port is open using only bash built-ins.\n")
-        host = input("Target host (e.g. scanme.nmap.org or 127.0.0.1): ").strip()
-        port = input("Port to check (e.g. 22, 80): ").strip()
-        if host and port:
-            cmd = (
-                f"(echo >/dev/tcp/{host}/{port}) 2>/dev/null "
-                f"&& echo 'Port {port} is OPEN' "
-                f"|| echo 'Port {port} is CLOSED/FILTERED'"
-            )
-            run_cmd(cmd, module="module1")
-        pause()
+        if sub == "a":
+            show_file(os.path.join(MODULES_DIR, "module1_fundamentals.md"))
+            pause()
 
-    elif sub == "c":
-        mark_complete(progress, "module1")
-        pause()
+        elif sub == "b":
+            print(bold("\n--- Open Port Check (Native Socket) ---"))
+            print("This checks whether a port is open using Python's socket library.\n")
+            host = input("Target host (e.g. scanme.nmap.org or 127.0.0.1): ").strip()
+            port_str = input("Port to check (e.g. 22, 80): ").strip()
+            
+            if host and port_str:
+                try:
+                    port = int(port_str)
+                    import socket
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(2)
+                    result = sock.connect_ex((host, port))
+                    if result == 0:
+                        print(green(f"[+] Port {port} is OPEN on {host}"))
+                    else:
+                        print(red(f"[-] Port {port} is CLOSED on {host}"))
+                    sock.close()
+                except ValueError:
+                    print(red("[!] Invalid port number."))
+                except Exception as e:
+                    print(red(f"[!] Error: {e}"))
+            pause()
 
-    option_module1(progress) if sub not in ("q", "") else None
+        elif sub == "c":
+            mark_complete(progress, "module1")
+            pause()
 
 def option_module2(progress):
-    clear()
-    ethical_warning()
-    print(bold("=== Module 2: Footprinting & Scanning ===\n"))
-    print("Legal targets: scanme.nmap.org | localhost\n")
+    while True:
+        clear()
+        ethical_warning()
+        print(bold("=== Module 2: Footprinting & Scanning ===\n"))
+        print("Legal targets: scanme.nmap.org | localhost\n")
 
-    sub = input("""
+        sub = input("""
   a) Read module notes
   b) WHOIS lookup
   c) DNS lookup (dig)
@@ -221,61 +234,63 @@ def option_module2(progress):
 
 Choice: """).strip().lower()
 
-    if sub == "a":
-        show_file(os.path.join(MODULES_DIR, "module2_footprinting.md"))
-        pause()
+        if sub == "q" or sub == "":
+            break
 
-    elif sub == "b":
-        target = input("Domain for WHOIS (e.g. example.com): ").strip()
-        if target:
-            run_cmd(f"whois {target}", module="module2")
-        pause()
+        if sub == "a":
+            show_file(os.path.join(MODULES_DIR, "module2_footprinting.md"))
+            pause()
 
-    elif sub == "c":
-        target = input("Domain for DNS lookup (e.g. scanme.nmap.org): ").strip()
-        if target:
-            run_cmd(f"dig {target} ANY +short", module="module2")
-        pause()
+        elif sub == "b":
+            target = input("Domain for WHOIS (e.g. example.com): ").strip()
+            if target:
+                run_cmd(f"whois {target}", module="module2")
+            pause()
 
-    elif sub == "d":
-        target = input("Target (e.g. scanme.nmap.org): ").strip()
-        if target:
-            run_cmd(f"nmap {target}", module="module2")
-        pause()
+        elif sub == "c":
+            target = input("Domain for DNS lookup (e.g. scanme.nmap.org): ").strip()
+            if target:
+                run_cmd(f"dig {target} ANY +short", module="module2")
+            pause()
 
-    elif sub == "e":
-        target = input("Target (e.g. scanme.nmap.org): ").strip()
-        if target:
-            run_cmd(f"nmap -sV -sC -O {target}", module="module2")
-        pause()
+        elif sub == "d":
+            target = input("Target (e.g. scanme.nmap.org): ").strip()
+            if target:
+                run_cmd(f"nmap {target}", module="module2")
+            pause()
 
-    elif sub == "f":
-        target = input("Target for scan.sh (e.g. scanme.nmap.org): ").strip()
-        if target:
-            script = os.path.join(SCRIPTS_DIR, "scan.sh")
-            run_cmd(f"bash {script} {target}", module="module2")
-        pause()
+        elif sub == "e":
+            target = input("Target (e.g. scanme.nmap.org): ").strip()
+            if target:
+                run_cmd(f"nmap -sV -sC -O {target}", module="module2")
+            pause()
 
-    elif sub == "g":
-        target = input("Target for network_scan.py: ").strip()
-        if target:
-            script = os.path.join(SCRIPTS_DIR, "network_scan.py")
-            run_cmd(f"python {script} {target}", module="module2")
-        pause()
+        elif sub == "f":
+            target = input("Target for scan.sh (e.g. scanme.nmap.org): ").strip()
+            if target:
+                script = os.path.join(SCRIPTS_DIR, "scan.sh")
+                run_cmd(f"bash {script} {target}", module="module2")
+            pause()
 
-    elif sub == "h":
-        mark_complete(progress, "module2")
-        pause()
+        elif sub == "g":
+            target = input("Target for network_scan.py: ").strip()
+            if target:
+                script = os.path.join(SCRIPTS_DIR, "network_scan.py")
+                run_cmd(f"python {script} {target}", module="module2")
+            pause()
 
-    option_module2(progress) if sub not in ("q", "") else None
+        elif sub == "h":
+            mark_complete(progress, "module2")
+            pause()
 
 def option_module3(progress):
-    clear()
-    ethical_warning()
-    print(bold("=== Module 3: Attacks (Safe Demo Only) ===\n"))
-    print("WARNING: Only use on LOCAL targets (DVWA, localhost, your own hash files).\n")
+    while True:
+        clear()
+        ethical_warning()
+        print(bold("=== Module 3: Attacks (Safe Demo Only) ===\n"))
+        print("WARNING: Only use on LOCAL targets (DVWA, localhost, your own hash files).\n")
 
-    sub = input("""
+        sub = input("""
   a) Read module notes
   b) Crack a sample hash with john
   c) Hydra brute-force demo (localhost only)
@@ -287,67 +302,69 @@ def option_module3(progress):
 
 Choice: """).strip().lower()
 
-    if sub == "a":
-        show_file(os.path.join(MODULES_DIR, "module3_attacks.md"))
-        pause()
+        if sub == "q" or sub == "":
+            break
 
-    elif sub == "b":
-        sample_hash = os.path.join(BASE_DIR, "labs", "sample_hashes.txt")
-        if not os.path.exists(sample_hash):
-            # Create a sample hash file (MD5 of "password123")
-            os.makedirs(os.path.dirname(sample_hash), exist_ok=True)
-            with open(sample_hash, "w") as fh:
-                fh.write("# Sample hashes for john lab\n")
-                fh.write("user1:482c811da5d5b4bc6d497ffa98491e38\n")  # password123
-                fh.write("user2:5f4dcc3b5aa765d61d8327deb882cf99\n")  # password
-            print(green(f"[+] Created sample hash file: {sample_hash}"))
-        run_cmd(f"john --wordlist=/usr/share/wordlists/rockyou.txt {sample_hash} --format=raw-md5",
-                module="module3")
-        pause()
+        if sub == "a":
+            show_file(os.path.join(MODULES_DIR, "module3_attacks.md"))
+            pause()
 
-    elif sub == "c":
-        print(yellow("\nHydra brute force – localhost SSH demo"))
-        print(red("[!] Only run against 127.0.0.1 or your DVWA instance.\n"))
-        run_cmd(
-            "echo 'admin\nroot\nuser' > /tmp/users.txt && "
-            "echo 'password\n123456\nadmin' > /tmp/pass.txt && "
-            "hydra -L /tmp/users.txt -P /tmp/pass.txt 127.0.0.1 ssh -t 4 -V 2>&1 | head -30",
-            module="module3"
-        )
-        pause()
+        elif sub == "b":
+            sample_hash = os.path.join(BASE_DIR, "labs", "sample_hashes.txt")
+            if not os.path.exists(sample_hash):
+                # Create a sample hash file (MD5 of "password123")
+                os.makedirs(os.path.dirname(sample_hash), exist_ok=True)
+                with open(sample_hash, "w") as fh:
+                    fh.write("# Sample hashes for john lab\n")
+                    fh.write("user1:482c811da5d5b4bc6d497ffa98491e38\n")  # password123
+                    fh.write("user2:5f4dcc3b5aa765d61d8327deb882cf99\n")  # password
+                print(green(f"[+] Created sample hash file: {sample_hash}"))
+            run_cmd(f"john --wordlist=/usr/share/wordlists/rockyou.txt {sample_hash} --format=raw-md5",
+                    module="module3")
+            pause()
 
-    elif sub == "d":
-        print(yellow("\nsqlmap demo against testphp.vulnweb.com (authorised target)"))
-        run_cmd(
-            "sqlmap -u 'http://testphp.vulnweb.com/listproducts.php?cat=1' "
-            "--batch --level=1 --risk=1 --dbs 2>&1 | head -60",
-            module="module3"
-        )
-        pause()
+        elif sub == "c":
+            print(yellow("\nHydra brute force – localhost SSH demo"))
+            print(red("[!] Only run against 127.0.0.1 or your DVWA instance.\n"))
+            run_cmd(
+                "echo 'admin\nroot\nuser' > /tmp/users.txt && "
+                "echo 'password\n123456\nadmin' > /tmp/pass.txt && "
+                "hydra -L /tmp/users.txt -P /tmp/pass.txt 127.0.0.1 ssh -t 4 -V 2>&1 | head -30",
+                module="module3"
+            )
+            pause()
 
-    elif sub == "e":
-        script = os.path.join(SCRIPTS_DIR, "password_lab.sh")
-        run_cmd(f"bash {script}", module="module3")
-        pause()
+        elif sub == "d":
+            print(yellow("\nsqlmap demo against testphp.vulnweb.com (authorised target)"))
+            run_cmd(
+                "sqlmap -u 'http://testphp.vulnweb.com/listproducts.php?cat=1' "
+                "--batch --level=1 --risk=1 --dbs 2>&1 | head -60",
+                module="module3"
+            )
+            pause()
 
-    elif sub == "f":
-        script = os.path.join(SCRIPTS_DIR, "sqlmap_runner.sh")
-        run_cmd(f"bash {script}", module="module3")
-        pause()
+        elif sub == "e":
+            script = os.path.join(SCRIPTS_DIR, "password_lab.sh")
+            run_cmd(f"bash {script}", module="module3")
+            pause()
 
-    elif sub == "g":
-        mark_complete(progress, "module3")
-        pause()
+        elif sub == "f":
+            script = os.path.join(SCRIPTS_DIR, "sqlmap_runner.sh")
+            run_cmd(f"bash {script}", module="module3")
+            pause()
 
-    option_module3(progress) if sub not in ("q", "") else None
+        elif sub == "g":
+            mark_complete(progress, "module3")
+            pause()
 
 def option_module4(progress):
-    clear()
-    ethical_warning()
-    print(bold("=== Module 4: Web Services & IDS ===\n"))
-    print("Tools: nikto, gobuster, whatweb, tshark\n")
+    while True:
+        clear()
+        ethical_warning()
+        print(bold("=== Module 4: Web Services & IDS ===\n"))
+        print("Tools: nikto, gobuster, whatweb, tshark\n")
 
-    sub = input("""
+        sub = input("""
   a) Read module notes
   b) nikto – web vulnerability scan
   c) gobuster – directory brute force
@@ -360,57 +377,59 @@ def option_module4(progress):
 
 Choice: """).strip().lower()
 
-    if sub == "a":
-        show_file(os.path.join(MODULES_DIR, "module4_web_ids.md"))
-        pause()
+        if sub == "q" or sub == "":
+            break
 
-    elif sub == "b":
-        target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
-        if target:
-            run_cmd(f"nikto -h {target} 2>&1 | head -60", module="module4")
-        pause()
+        if sub == "a":
+            show_file(os.path.join(MODULES_DIR, "module4_web_ids.md"))
+            pause()
 
-    elif sub == "c":
-        target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
-        wordlist = "/usr/share/wordlists/dirb/common.txt"
-        if target:
-            run_cmd(f"gobuster dir -u {target} -w {wordlist} 2>&1 | head -40",
-                    module="module4")
-        pause()
+        elif sub == "b":
+            target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
+            if target:
+                run_cmd(f"nikto -h {target} 2>&1 | head -60", module="module4")
+            pause()
 
-    elif sub == "d":
-        target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
-        if target:
-            run_cmd(f"whatweb -v {target}", module="module4")
-        pause()
+        elif sub == "c":
+            target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
+            wordlist = "/usr/share/wordlists/dirb/common.txt"
+            if target:
+                run_cmd(f"gobuster dir -u {target} -w {wordlist} 2>&1 | head -40",
+                        module="module4")
+            pause()
 
-    elif sub == "e":
-        iface = input("Network interface (e.g. wlan0, lo): ").strip() or "lo"
-        run_cmd(f"tshark -i {iface} -c 30 2>&1", module="module4")
-        pause()
+        elif sub == "d":
+            target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
+            if target:
+                run_cmd(f"whatweb -v {target}", module="module4")
+            pause()
 
-    elif sub == "f":
-        script = os.path.join(SCRIPTS_DIR, "web_scan.sh")
-        run_cmd(f"bash {script}", module="module4")
-        pause()
+        elif sub == "e":
+            iface = input("Network interface (e.g. wlan0, lo): ").strip() or "lo"
+            run_cmd(f"tshark -i {iface} -c 30 2>&1", module="module4")
+            pause()
 
-    elif sub == "g":
-        script = os.path.join(SCRIPTS_DIR, "log_analyzer.py")
-        run_cmd(f"python {script}", module="module4")
-        pause()
+        elif sub == "f":
+            script = os.path.join(SCRIPTS_DIR, "web_scan.sh")
+            run_cmd(f"bash {script}", module="module4")
+            pause()
 
-    elif sub == "h":
-        mark_complete(progress, "module4")
-        pause()
+        elif sub == "g":
+            script = os.path.join(SCRIPTS_DIR, "log_analyzer.py")
+            run_cmd(f"python {script}", module="module4")
+            pause()
 
-    option_module4(progress) if sub not in ("q", "") else None
+        elif sub == "h":
+            mark_complete(progress, "module4")
+            pause()
 
 def option_module5(progress):
-    clear()
-    print(bold("=== Module 5: Digital Forensics ===\n"))
-    print("Tools: grep, awk, sort, uniq, log_parser.sh, anomaly_detector.py\n")
+    while True:
+        clear()
+        print(bold("=== Module 5: Digital Forensics ===\n"))
+        print("Tools: grep, awk, sort, uniq, log_parser.sh, anomaly_detector.py\n")
 
-    sub = input("""
+        sub = input("""
   a) Read module notes
   b) Analyze sample access.log (grep/awk)
   c) Detect brute-force attempts in log
@@ -422,53 +441,54 @@ def option_module5(progress):
 
 Choice: """).strip().lower()
 
-    if sub == "a":
-        show_file(os.path.join(MODULES_DIR, "module5_forensics.md"))
-        pause()
+        if sub == "q" or sub == "":
+            break
 
-    elif sub == "b":
-        log = os.path.join(BASE_DIR, "labs", "sample_access.log")
-        if not os.path.exists(log):
-            _create_sample_log(log)
-        run_cmd(f"cat {log}", module="module5")
-        pause()
+        if sub == "a":
+            show_file(os.path.join(MODULES_DIR, "module5_forensics.md"))
+            pause()
 
-    elif sub == "c":
-        log = os.path.join(BASE_DIR, "labs", "sample_access.log")
-        if not os.path.exists(log):
-            _create_sample_log(log)
-        # >10 failed logins from same IP
-        run_cmd(
-            f"grep '401\\|403' {log} | awk '{{print $1}}' | sort | uniq -c | sort -rn | head -10",
-            module="module5"
-        )
-        pause()
+        elif sub == "b":
+            log = os.path.join(BASE_DIR, "labs", "sample_access.log")
+            if not os.path.exists(log):
+                _create_sample_log(log)
+            run_cmd(f"cat {log}", module="module5")
+            pause()
 
-    elif sub == "d":
-        log = os.path.join(BASE_DIR, "labs", "sample_access.log")
-        if not os.path.exists(log):
-            _create_sample_log(log)
-        run_cmd(
-            f"awk '{{print $1}}' {log} | sort | uniq -c | sort -rn | head -20",
-            module="module5"
-        )
-        pause()
+        elif sub == "c":
+            log = os.path.join(BASE_DIR, "labs", "sample_access.log")
+            if not os.path.exists(log):
+                _create_sample_log(log)
+            # >10 failed logins from same IP
+            run_cmd(
+                f"grep '401\\|403' {log} | awk '{{print $1}}' | sort | uniq -c | sort -rn | head -10",
+                module="module5"
+            )
+            pause()
 
-    elif sub == "e":
-        script = os.path.join(SCRIPTS_DIR, "log_parser.sh")
-        run_cmd(f"bash {script}", module="module5")
-        pause()
+        elif sub == "d":
+            log = os.path.join(BASE_DIR, "labs", "sample_access.log")
+            if not os.path.exists(log):
+                _create_sample_log(log)
+            run_cmd(
+                f"awk '{{print $1}}' {log} | sort | uniq -c | sort -rn | head -20",
+                module="module5"
+            )
+            pause()
 
-    elif sub == "f":
-        script = os.path.join(SCRIPTS_DIR, "anomaly_detector.py")
-        run_cmd(f"python {script}", module="module5")
-        pause()
+        elif sub == "e":
+            script = os.path.join(SCRIPTS_DIR, "log_parser.sh")
+            run_cmd(f"bash {script}", module="module5")
+            pause()
 
-    elif sub == "g":
-        mark_complete(progress, "module5")
-        pause()
+        elif sub == "f":
+            script = os.path.join(SCRIPTS_DIR, "anomaly_detector.py")
+            run_cmd(f"python {script}", module="module5")
+            pause()
 
-    option_module5(progress) if sub not in ("q", "") else None
+        elif sub == "g":
+            mark_complete(progress, "module5")
+            pause()
 
 def _create_sample_log(path):
     """Generate a sample Apache access log for forensics labs."""

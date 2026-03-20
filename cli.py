@@ -87,8 +87,8 @@ def clear():
 def pause():
     input(yellow("\n[Enter] to continue..."))
 
-def run_cmd(cmd, module=None, save=True):
-    """Run a shell command, optionally save output to logs."""
+def run_cmd(cmd, module=None, save=True, auto_mark=False, progress=None):
+    """Run a shell command, optionally save output and auto-mark module complete."""
     print(cyan(f"\n$ {cmd}\n"))
     try:
         result = subprocess.run(
@@ -96,15 +96,22 @@ def run_cmd(cmd, module=None, save=True):
         )
         output = result.stdout + result.stderr
         print(output)
+        
+        success = (result.returncode == 0)
+        
         if save and module:
             save_log(module, f"$ {cmd}\n\n{output}")
-        return output
+        
+        if auto_mark and module and success and progress is not None:
+            mark_complete(progress, module)
+            
+        return success
     except subprocess.TimeoutExpired:
         print(red("[!] Command timed out after 120 seconds."))
-        return ""
+        return False
     except Exception as e:
         print(red(f"[!] Error: {e}"))
-        return ""
+        return False
 
 def show_file(path):
     """Print a markdown file to the terminal."""
@@ -269,14 +276,14 @@ Choice: """).strip().lower()
             target = input("Target for scan.sh (e.g. scanme.nmap.org): ").strip()
             if target:
                 script = os.path.join(SCRIPTS_DIR, "scan.sh")
-                run_cmd(f"bash {script} {target}", module="module2")
+                run_cmd(f"bash {script} {target}", module="module2", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "g":
             target = input("Target for network_scan.py: ").strip()
             if target:
                 script = os.path.join(SCRIPTS_DIR, "network_scan.py")
-                run_cmd(f"python {script} {target}", module="module2")
+                run_cmd(f"python {script} {target}", module="module2", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "h":
@@ -345,12 +352,12 @@ Choice: """).strip().lower()
 
         elif sub == "e":
             script = os.path.join(SCRIPTS_DIR, "password_lab.sh")
-            run_cmd(f"bash {script}", module="module3")
+            run_cmd(f"bash {script}", module="module3", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "f":
             script = os.path.join(SCRIPTS_DIR, "sqlmap_runner.sh")
-            run_cmd(f"bash {script}", module="module3")
+            run_cmd(f"bash {script}", module="module3", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "g":
@@ -411,12 +418,12 @@ Choice: """).strip().lower()
 
         elif sub == "f":
             script = os.path.join(SCRIPTS_DIR, "web_scan.sh")
-            run_cmd(f"bash {script}", module="module4")
+            run_cmd(f"bash {script}", module="module4", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "g":
             script = os.path.join(SCRIPTS_DIR, "log_analyzer.py")
-            run_cmd(f"python {script}", module="module4")
+            run_cmd(f"python {script}", module="module4", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "h":
@@ -478,12 +485,12 @@ Choice: """).strip().lower()
 
         elif sub == "e":
             script = os.path.join(SCRIPTS_DIR, "log_parser.sh")
-            run_cmd(f"bash {script}", module="module5")
+            run_cmd(f"bash {script}", module="module5", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "f":
             script = os.path.join(SCRIPTS_DIR, "anomaly_detector.py")
-            run_cmd(f"python {script}", module="module5")
+            run_cmd(f"python {script}", module="module5", auto_mark=True, progress=progress)
             pause()
 
         elif sub == "g":
@@ -600,18 +607,44 @@ def option_ctf(progress):
     ]
 
     score = 0
+    import re
+    def normalize(text):
+        # Remove punctuation and "and", then collapse whitespace
+        text = text.lower()
+        text = re.sub(r'[^\w\s]', '', text)
+        text = re.sub(r'\band\b', '', text)
+        return " ".join(text.split())
+
     for name, question, answers in challenges:
         print(cyan(f"\n[{name}] {question}"))
-        ans = input("Your answer: ").strip().lower()
-        if any(ans == a.lower() for a in answers):
+        ans = input("Your answer: ").strip()
+        norm_ans = normalize(ans)
+        
+        match = False
+        for a in answers:
+            if norm_ans == normalize(a):
+                match = True
+                break
+        
+        if match:
             print(green("  ✔ Correct! +2 pts"))
             score += 2
         else:
             print(red(f"  ✘ Incorrect. Answer: {answers[0]}"))
 
     print(bold(f"\nCTF Score: {score}/10"))
+    
+    # Persistent improvement: Always save the highest score
+    prev_score = progress["ctf"].get("score", 0)
+    if score > prev_score:
+        progress["ctf"]["score"] = score
+        progress["ctf"]["timestamp"] = datetime.datetime.now().isoformat()
+        
     if score >= 6:
-        mark_complete(progress, "ctf", score=score)
+        progress["ctf"]["completed"] = True
+        print(green("✔ CTF Module marked complete!"))
+    
+    save_progress(progress)
     pause()
 
 # ─── Main loop ────────────────────────────────────────────────────────────────

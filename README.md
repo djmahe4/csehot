@@ -1,4 +1,4 @@
-# CGT 312 – Ethical Hacking Lab
+# CGT 312 – Ethical Hacking (CSehOT)
 ## Termux-Based Practical Learning Environment
 
 > ⚠️ **LEGAL NOTICE:** This repository is for **educational purposes only**.
@@ -30,6 +30,13 @@ bash setup.sh
 # 3. Launch the interactive CLI
 python cli.py
 ```
+
+---
+
+### 📚 Resources for Beginners
+
+If you are new to Linux or Python, we recommend starting here:
+*   [**Beginner's Guide to Linux & Python Basics**](beginner_guide.md) — Covers `subprocess`, terminal operators (`&`, `2>&1`, `&&`), and Nmap parsing logic.
 
 ---
 

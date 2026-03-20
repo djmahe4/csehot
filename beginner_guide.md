@@ -60,22 +60,29 @@ In `setup.sh`, you'll see `set -e`. This is a "safety first" flag that tells the
 <details>
 <summary><b>3. Colors in the Terminal (ANSI Escapes)</b></summary>
 
-Ever wonder how `cli.py` prints text in RED or GREEN? We use **ANSI Escape Codes**.
+ANSI escape codes are sequences the terminal interprets as formatting instructions (colors, bold, reset). Use them as strings/variables and reset after your text.
 
+#### In Python
 ```python
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"
-NC = "\033[0m" # No Color (Reset)
-```
-When the terminal sees `\033`, it knows a formatting instruction is coming. `[0;31m` tells it to start printing in red, and `[0m` tells it to stop.
+NC = "\033[0m"  # No Color / Reset
 
-### Usage
+print(f"{RED}Error: Operation failed{NC}")
+print(f"{GREEN}Success: Scan complete{NC}")
+```
+
+#### In Shell (Bash)
 ```bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'  # No Color / Reset
+
 echo -e "${RED}This is red text${NC}"
 echo -e "${GREEN}This is green text${NC}"
-echo -e "${NC}" # Resets the color
 ```
 
+Note: Always include the reset (NC) at the end of colored output; otherwise subsequent terminal output will remain colored.
 </details>
 
 <details>

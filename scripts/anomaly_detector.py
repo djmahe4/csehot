@@ -82,7 +82,7 @@ ATTACK_SIGNATURES = {
 def parse_log(logfile):
     """Parse access log, return list of entry dicts."""
     entries = []
-    with open(logfile) as f:
+    with open(logfile, encoding="utf-8", errors="ignore") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):

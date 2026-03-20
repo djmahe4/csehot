@@ -16,6 +16,8 @@ import os
 import subprocess
 import datetime
 import json
+import xml.etree.ElementTree as ET
+import shlex
 
 # ─── Colours ─────────────────────────────────────────────────────────────────
 
@@ -44,41 +46,82 @@ def warn():
 
 def run_nmap(target, flags, label):
     """Run nmap with given flags and return output."""
-    cmd = f"nmap {flags} {target}"
+    # Split flags and target into a list for shell=False
+    args = ["nmap"]
+    if isinstance(flags, str):
+        args.extend(shlex.split(flags))
+    else:
+        args.extend(flags)
+    
+    # Ensure XML output is requested for robust parsing
+    if "-oX" not in args:
+        args.extend(["-oX", "-"])
+        
+    args.append(target)
+    
     print(f"{CYAN}[*] {label}{NC}")
-    print(f"{YELLOW}$ {cmd}{NC}\n")
+    print(f"{YELLOW}$ {' '.join(args)}{NC}\n")
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=180
+            args, shell=False, capture_output=True, text=True, timeout=180
         )
         output = result.stdout + result.stderr
-        print(output)
-        return {"command": cmd, "output": output}
+        # If output starts with XML header, don't print the whole thing to keep terminal clean
+        if output.strip().startswith("<?xml"):
+            print(f"{GREEN}[+] Scan complete (XML output received){NC}")
+        else:
+            print(output)
+        return {"command": " ".join(args), "output": output}
     except subprocess.TimeoutExpired:
         msg = "[!] Command timed out after 180 seconds."
         print(f"{RED}{msg}{NC}")
-        return {"command": cmd, "output": msg}
+        return {"command": " ".join(args), "output": msg}
     except Exception as e:
         msg = f"[!] Error: {e}"
         print(f"{RED}{msg}{NC}")
-        return {"command": cmd, "output": msg}
+        return {"command": " ".join(args), "output": msg}
 
 
 def parse_open_ports(nmap_output):
-    """Extract open port information from nmap output."""
+    """Extract open port information from nmap output using XML parsing."""
     ports = []
-    for line in nmap_output.splitlines():
-        # Match lines like: 22/tcp   open  ssh     OpenSSH 6.6.1
-        if "/tcp" in line or "/udp" in line:
-            parts = line.split()
-            if len(parts) >= 3 and parts[1] == "open":
-                port_info = {
-                    "port": parts[0],
-                    "state": parts[1],
-                    "service": parts[2] if len(parts) > 2 else "",
-                    "version": " ".join(parts[3:]) if len(parts) > 3 else ""
-                }
-                ports.append(port_info)
+    if not nmap_output.strip().startswith("<?xml"):
+        return ports
+        
+    try:
+        # nmap might output some non-XML text before the XML block (warnings etc.)
+        # Find the start of the XML block
+        xml_start = nmap_output.find("<?xml")
+        if xml_start == -1:
+            return ports
+            
+        root = ET.fromstring(nmap_output[xml_start:])
+        for host in root.findall('host'):
+            ports_elem = host.find('ports')
+            if ports_elem is None:
+                continue
+                
+            for port in ports_elem.findall('port'):
+                state_elem = port.find('state')
+                if state_elem is not None and state_elem.get('state') == 'open':
+                    service_elem = port.find('service')
+                    service = service_elem.get('name') if service_elem is not None else ""
+                    
+                    product = service_elem.get('product', '') if service_elem is not None else ""
+                    version = service_elem.get('version', '') if service_elem is not None else ""
+                    extrainfo = service_elem.get('extrainfo', '') if service_elem is not None else ""
+                    full_version = f"{product} {version} {extrainfo}".strip()
+                    
+                    port_info = {
+                        "port": f"{port.get('portid')}/{port.get('protocol')}",
+                        "state": "open",
+                        "service": service,
+                        "version": full_version
+                    }
+                    ports.append(port_info)
+    except Exception as e:
+        print(f"{RED}[!] Error parsing nmap XML: {e}{NC}")
+        
     return ports
 
 

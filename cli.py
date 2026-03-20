@@ -13,6 +13,8 @@ import sys
 import json
 import subprocess
 import datetime
+import shlex
+import socket
 
 # ─── Colour helpers ──────────────────────────────────────────────────────────
 
@@ -87,17 +89,29 @@ def clear():
 def pause():
     input(yellow("\n[Enter] to continue..."))
 
-def run_cmd(cmd, module=None, save=True):
-    """Run a shell command, optionally save output to logs."""
-    print(cyan(f"\n$ {cmd}\n"))
+def run_cmd(args, module=None, save=True, head=None):
+    """Run a command (list or string), optionally save output to logs."""
+    if isinstance(args, list):
+        display_cmd = " ".join([shlex.quote(str(arg)) for arg in args])
+        shell = False
+    else:
+        display_cmd = args
+        shell = True
+        
+    print(cyan(f"\n$ {display_cmd}\n"))
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=120
+            args, shell=shell, capture_output=True, text=True, timeout=120
         )
         output = result.stdout + result.stderr
+        
+        # Implement 'head' functionality in Python if requested
+        if head:
+            output = "\n".join(output.splitlines()[:head])
+            
         print(output)
         if save and module:
-            save_log(module, f"$ {cmd}\n\n{output}")
+            save_log(module, f"$ {display_cmd}\n\n{output}")
         return output
     except subprocess.TimeoutExpired:
         print(red("[!] Command timed out after 120 seconds."))
@@ -117,11 +131,11 @@ def show_file(path):
 def ethical_warning():
     print(red("""
 ╔══════════════════════════════════════════════════════╗
-║  ⚠  ETHICAL USE WARNING                             ║
+║  ⚠  ETHICAL USE WARNING                              ║
 ║                                                      ║
-║  The following techniques are for EDUCATIONAL use.  ║
-║  Only run these on systems you OWN or have WRITTEN  ║
-║  permission to test. Unauthorized use is ILLEGAL.   ║
+║  The following techniques are for EDUCATIONAL use.   ║
+║  Only run these on systems you OWN or have WRITTEN   ║
+║  permission to test. Unauthorized use is ILLEGAL.    ║
 ╚══════════════════════════════════════════════════════╝
 """))
 
@@ -159,7 +173,8 @@ def option_setup():
     confirm = input(yellow("Run setup.sh now? [y/N]: ")).strip().lower()
     if confirm == "y":
         setup_path = os.path.join(BASE_DIR, "setup.sh")
-        os.system(f"bash {setup_path}")
+        # setup.sh is typically bash, keeping os.system/subprocess list is fine
+        subprocess.run(["bash", setup_path])
     else:
         print(yellow("Setup skipped. Run 'bash setup.sh' manually."))
     pause()
@@ -172,7 +187,7 @@ def option_module1(progress):
 
     sub = input("""
   a) Read module notes
-  b) Open-port check (bash /dev/tcp demo)
+  b) Open-port check (native socket demo)
   c) Mark module as complete
   q) Back
 
@@ -183,17 +198,26 @@ Choice: """).strip().lower()
         pause()
 
     elif sub == "b":
-        print(bold("\n--- Open Port Check via /dev/tcp ---"))
-        print("This checks whether a port is open using only bash built-ins.\n")
+        print(bold("\n--- Open Port Check via socket ---"))
+        print("This checks whether a port is open using native Python sockets.\n")
         host = input("Target host (e.g. scanme.nmap.org or 127.0.0.1): ").strip()
-        port = input("Port to check (e.g. 22, 80): ").strip()
-        if host and port:
-            cmd = (
-                f"(echo >/dev/tcp/{host}/{port}) 2>/dev/null "
-                f"&& echo 'Port {port} is OPEN' "
-                f"|| echo 'Port {port} is CLOSED/FILTERED'"
-            )
-            run_cmd(cmd, module="module1")
+        port_str = input("Port to check (e.g. 22, 80): ").strip()
+        if host and port_str:
+            try:
+                port = int(port_str)
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(3)
+                    result = s.connect_ex((host, port))
+                    if result == 0:
+                        print(green(f"Port {port} is OPEN"))
+                        save_log("module1", f"Port check: {host}:{port} - OPEN")
+                    else:
+                        print(yellow(f"Port {port} is CLOSED or FILTERED"))
+                        save_log("module1", f"Port check: {host}:{port} - CLOSED/FILTERED")
+            except ValueError:
+                print(red("[!] Port must be a number."))
+            except Exception as e:
+                print(red(f"[!] Error: {e}"))
         pause()
 
     elif sub == "c":
@@ -228,39 +252,39 @@ Choice: """).strip().lower()
     elif sub == "b":
         target = input("Domain for WHOIS (e.g. example.com): ").strip()
         if target:
-            run_cmd(f"whois {target}", module="module2")
+            run_cmd(["whois", target], module="module2")
         pause()
 
     elif sub == "c":
         target = input("Domain for DNS lookup (e.g. scanme.nmap.org): ").strip()
         if target:
-            run_cmd(f"dig {target} ANY +short", module="module2")
+            run_cmd(["dig", target, "ANY", "+short"], module="module2")
         pause()
 
     elif sub == "d":
         target = input("Target (e.g. scanme.nmap.org): ").strip()
         if target:
-            run_cmd(f"nmap {target}", module="module2")
+            run_cmd(["nmap", target], module="module2")
         pause()
 
     elif sub == "e":
         target = input("Target (e.g. scanme.nmap.org): ").strip()
         if target:
-            run_cmd(f"nmap -sV -sC -O {target}", module="module2")
+            run_cmd(["nmap", "-sV", "-sC", "-O", target], module="module2")
         pause()
 
     elif sub == "f":
         target = input("Target for scan.sh (e.g. scanme.nmap.org): ").strip()
         if target:
             script = os.path.join(SCRIPTS_DIR, "scan.sh")
-            run_cmd(f"bash {script} {target}", module="module2")
+            run_cmd(["bash", script, target], module="module2")
         pause()
 
     elif sub == "g":
         target = input("Target for network_scan.py: ").strip()
         if target:
             script = os.path.join(SCRIPTS_DIR, "network_scan.py")
-            run_cmd(f"python {script} {target}", module="module2")
+            run_cmd(["python3", script, target], module="module2")
         pause()
 
     elif sub == "h":
@@ -294,45 +318,44 @@ Choice: """).strip().lower()
     elif sub == "b":
         sample_hash = os.path.join(BASE_DIR, "labs", "sample_hashes.txt")
         if not os.path.exists(sample_hash):
-            # Create a sample hash file (MD5 of "password123")
             os.makedirs(os.path.dirname(sample_hash), exist_ok=True)
             with open(sample_hash, "w") as fh:
                 fh.write("# Sample hashes for john lab\n")
                 fh.write("user1:482c811da5d5b4bc6d497ffa98491e38\n")  # password123
                 fh.write("user2:5f4dcc3b5aa765d61d8327deb882cf99\n")  # password
             print(green(f"[+] Created sample hash file: {sample_hash}"))
-        run_cmd(f"john --wordlist=/usr/share/wordlists/rockyou.txt {sample_hash} --format=raw-md5",
+        run_cmd(["john", "--wordlist=/usr/share/wordlists/rockyou.txt", sample_hash, "--format=raw-md5"],
                 module="module3")
         pause()
 
     elif sub == "c":
         print(yellow("\nHydra brute force – localhost SSH demo"))
         print(red("[!] Only run against 127.0.0.1 or your DVWA instance.\n"))
-        run_cmd(
+        # Fixed logic, no user input used here
+        cmd = (
             "echo 'admin\nroot\nuser' > /tmp/users.txt && "
             "echo 'password\n123456\nadmin' > /tmp/pass.txt && "
-            "hydra -L /tmp/users.txt -P /tmp/pass.txt 127.0.0.1 ssh -t 4 -V 2>&1 | head -30",
-            module="module3"
+            "hydra -L /tmp/users.txt -P /tmp/pass.txt 127.0.0.1 ssh -t 4 -V 2>&1"
         )
+        run_cmd(cmd, module="module3", head=30)
         pause()
 
     elif sub == "d":
         print(yellow("\nsqlmap demo against testphp.vulnweb.com (authorised target)"))
         run_cmd(
-            "sqlmap -u 'http://testphp.vulnweb.com/listproducts.php?cat=1' "
-            "--batch --level=1 --risk=1 --dbs 2>&1 | head -60",
-            module="module3"
+            "sqlmap -u 'http://testphp.vulnweb.com/listproducts.php?cat=1' --batch --level=1 --risk=1 --dbs 2>&1",
+            module="module3", head=60
         )
         pause()
 
     elif sub == "e":
         script = os.path.join(SCRIPTS_DIR, "password_lab.sh")
-        run_cmd(f"bash {script}", module="module3")
+        run_cmd(["bash", script], module="module3")
         pause()
 
     elif sub == "f":
         script = os.path.join(SCRIPTS_DIR, "sqlmap_runner.sh")
-        run_cmd(f"bash {script}", module="module3")
+        run_cmd(["bash", script], module="module3")
         pause()
 
     elif sub == "g":
@@ -367,36 +390,35 @@ Choice: """).strip().lower()
     elif sub == "b":
         target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
         if target:
-            run_cmd(f"nikto -h {target} 2>&1 | head -60", module="module4")
+            run_cmd(["nikto", "-h", target], module="module4", head=60)
         pause()
 
     elif sub == "c":
         target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
         wordlist = "/usr/share/wordlists/dirb/common.txt"
         if target:
-            run_cmd(f"gobuster dir -u {target} -w {wordlist} 2>&1 | head -40",
-                    module="module4")
+            run_cmd(["gobuster", "dir", "-u", target, "-w", wordlist], module="module4", head=40)
         pause()
 
     elif sub == "d":
         target = input("Target URL (e.g. http://testphp.vulnweb.com): ").strip()
         if target:
-            run_cmd(f"whatweb -v {target}", module="module4")
+            run_cmd(["whatweb", "-v", target], module="module4")
         pause()
 
     elif sub == "e":
         iface = input("Network interface (e.g. wlan0, lo): ").strip() or "lo"
-        run_cmd(f"tshark -i {iface} -c 30 2>&1", module="module4")
+        run_cmd(["tshark", "-i", iface, "-c", "30"], module="module4")
         pause()
 
     elif sub == "f":
         script = os.path.join(SCRIPTS_DIR, "web_scan.sh")
-        run_cmd(f"bash {script}", module="module4")
+        run_cmd(["bash", script], module="module4")
         pause()
 
     elif sub == "g":
         script = os.path.join(SCRIPTS_DIR, "log_analyzer.py")
-        run_cmd(f"python {script}", module="module4")
+        run_cmd(["python3", script], module="module4")
         pause()
 
     elif sub == "h":
@@ -430,38 +452,34 @@ Choice: """).strip().lower()
         log = os.path.join(BASE_DIR, "labs", "sample_access.log")
         if not os.path.exists(log):
             _create_sample_log(log)
-        run_cmd(f"cat {log}", module="module5")
+        run_cmd(["cat", log], module="module5")
         pause()
 
     elif sub == "c":
         log = os.path.join(BASE_DIR, "labs", "sample_access.log")
         if not os.path.exists(log):
             _create_sample_log(log)
-        # >10 failed logins from same IP
-        run_cmd(
-            f"grep '401\\|403' {log} | awk '{{print $1}}' | sort | uniq -c | sort -rn | head -10",
-            module="module5"
-        )
+        # Bash specific pipeline, keeping shell=True but inputs are safe file paths
+        cmd = f"grep '401\\|403' {shlex.quote(log)} | awk '{{print $1}}' | sort | uniq -c | sort -rn"
+        run_cmd(cmd, module="module5", head=10)
         pause()
 
     elif sub == "d":
         log = os.path.join(BASE_DIR, "labs", "sample_access.log")
         if not os.path.exists(log):
             _create_sample_log(log)
-        run_cmd(
-            f"awk '{{print $1}}' {log} | sort | uniq -c | sort -rn | head -20",
-            module="module5"
-        )
+        cmd = f"awk '{{print $1}}' {shlex.quote(log)} | sort | uniq -c | sort -rn"
+        run_cmd(cmd, module="module5", head=20)
         pause()
 
     elif sub == "e":
         script = os.path.join(SCRIPTS_DIR, "log_parser.sh")
-        run_cmd(f"bash {script}", module="module5")
+        run_cmd(["bash", script], module="module5")
         pause()
 
     elif sub == "f":
         script = os.path.join(SCRIPTS_DIR, "anomaly_detector.py")
-        run_cmd(f"python {script}", module="module5")
+        run_cmd(["python3", script], module="module5")
         pause()
 
     elif sub == "g":
@@ -507,19 +525,19 @@ def option_full_workflow(progress):
     web_target = "http://testphp.vulnweb.com"
 
     print(bold("\n[Step 1] WHOIS Lookup"))
-    run_cmd(f"whois {target} 2>&1 | head -30", module="module2")
+    run_cmd(["whois", target], module="module2", head=30)
 
     print(bold("\n[Step 2] DNS Lookup"))
-    run_cmd(f"dig {target} A +short", module="module2")
+    run_cmd(["dig", target, "A", "+short"], module="module2")
 
     print(bold("\n[Step 3] nmap Scan"))
-    run_cmd(f"nmap -sV -sC {target} 2>&1 | head -50", module="module2")
+    run_cmd(["nmap", "-sV", "-sC", target], module="module2", head=50)
 
     print(bold("\n[Step 4] whatweb Fingerprint"))
-    run_cmd(f"whatweb {web_target}", module="module4")
+    run_cmd(["whatweb", web_target], module="module4")
 
     print(bold("\n[Step 5] nikto Web Scan"))
-    run_cmd(f"nikto -h {web_target} 2>&1 | head -40", module="module4")
+    run_cmd(["nikto", "-h", web_target], module="module4", head=40)
 
     mark_complete(progress, "module2", score=15)
     mark_complete(progress, "module4", score=15)
@@ -529,7 +547,6 @@ def option_view_logs(progress):
     clear()
     print(bold("=== Logs / Reports ===\n"))
 
-    # Show progress table
     print(bold("─── Progress Tracker ───────────────────────"))
     total = 0
     for mod, data in progress.items():
@@ -540,7 +557,6 @@ def option_view_logs(progress):
         print(f"  {mod:<10} {status:<20} {score:>3} pts   {ts}")
     print(f"\n  Total Score: {bold(str(total))} pts\n")
 
-    # List log files
     print(bold("─── Saved Logs ──────────────────────────────"))
     found = False
     for mod in ["module1", "module2", "module3", "module4", "module5"]:
@@ -550,12 +566,11 @@ def option_view_logs(progress):
             if files:
                 found = True
                 print(f"\n  {cyan(mod)}:")
-                for fn in sorted(files)[-5:]:  # show last 5
+                for fn in sorted(files)[-5:]:
                     print(f"    logs/{mod}/{fn}")
     if not found:
         print("  No logs yet. Complete some labs first.")
 
-    # Report template
     print(bold("\n─── Report Template ─────────────────────────"))
     print(f"  {os.path.join(REPORTS_DIR, 'template.md')}")
     pause()
@@ -593,8 +608,6 @@ def option_ctf(progress):
     if score >= 6:
         mark_complete(progress, "ctf", score=score)
     pause()
-
-# ─── Main loop ────────────────────────────────────────────────────────────────
 
 def main():
     progress = load_progress()

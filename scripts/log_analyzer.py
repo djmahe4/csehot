@@ -103,7 +103,7 @@ def analyze(logfile):
         return None
 
     entries = []
-    with open(logfile) as f:
+    with open(logfile, encoding="utf-8", errors="ignore") as f:
         for line in f:
             if line.strip() and not line.startswith("#"):
                 parsed = parse_line(line)

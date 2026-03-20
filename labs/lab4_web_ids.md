@@ -154,11 +154,11 @@ tshark -r logs/module4/capture.pcap \
 ## Task 6: IDS Simulation – Detect Scan Patterns
 
 ```bash
-# Capture traffic while running a scan (use two terminals)
-# Terminal 1: Start capture
+# Capture traffic while running a scan (using background job control)
+# Start capture in the background
 tshark -i lo -c 500 -w /tmp/scan_capture.pcap 2>&1 &
 
-# Terminal 2: Run nmap against localhost (authorised)
+# Run nmap against localhost (authorised)
 nmap -sV localhost
 
 # Wait for nmap to finish, then analyse capture

@@ -179,13 +179,9 @@ curl -s "http://testphp.vulnweb.com/listproducts.php?cat=1 OR 1=1" | wc -l
 
 ## Task 6: Input Validation Defence
 
-```python
-# Vulnerable code (DO NOT use in production)
-# import sqlite3
-# user_input = request.args.get('id')
-# query = f"SELECT * FROM products WHERE id = {user_input}"  # VULNERABLE!
-
-# Secure code with parameterised query
+```bash
+# Save the secure code to a file
+cat > /tmp/sqldefence.py << 'EOF'
 import sqlite3
 conn = sqlite3.connect('/tmp/test.db')
 cursor = conn.cursor()
@@ -203,9 +199,9 @@ results = cursor.fetchall()
 print(f"Safe query results: {results}")  # returns nothing - injection blocked!
 
 conn.close()
-```
+EOF
 
-```bash
+# Now run the script
 python3 /tmp/sqldefence.py
 ```
 

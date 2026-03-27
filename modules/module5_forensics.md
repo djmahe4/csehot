@@ -40,9 +40,18 @@ Logs record system and application activity. Key log types:
 **Example:**
 ```
 192.168.1.100 - admin [20/Mar/2024:10:00:01 +0000] "GET /index.php HTTP/1.1" 200 4523 "-" "Mozilla/5.0"
-│             │  │     │                            │   │                     │    │
-IP           Ident User Timestamp                   Req Status                Size Referrer
 ```
+| Field | Value |
+| --- | --- |
+| **IP** | 192.168.1.100 |
+| **Ident** | - |
+| **User** | admin |
+| **Timestamp** | 20/Mar/2024:10:00:01 +0000 |
+| **Request** | GET /index.php HTTP/1.1 |
+| **Status** | 200 (OK) |
+| **Size** | 4523 bytes |
+| **Referrer** | "-" (no referrer) |
+| **User-Agent** | Mozilla/5.0 |
 
 ---
 
